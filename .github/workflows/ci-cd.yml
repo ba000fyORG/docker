@@ -64,6 +64,7 @@ jobs:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
     needs: [lint, scan]
+    if: always()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
