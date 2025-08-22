@@ -51,12 +51,14 @@ jobs:
         continue-on-error: true
 
       # Install and run Trivy on file system
-      - name: Install Trivy
+      - name: Install Trivy (latest)
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget
-          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.56.0_Linux-64bit.deb
-          sudo dpkg -i trivy_0.56.0_Linux-64bit.deb
+          sudo apt-get install -y curl gnupg lsb-release
+          curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/trivy.gpg
+          echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
 
       - name: Trivy scan of filesystem
         run: trivy fs . --exit-code 0 --severity HIGH,CRITICAL
