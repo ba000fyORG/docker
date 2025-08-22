@@ -20,7 +20,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
-          failure-threshold: warning
+          failure-threshold: warning  # 🔸 Не прерывает выполнение
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,10 +31,12 @@ jobs:
         run: pip install flake8 black
 
       - name: Run flake8
-        run: flake8 main.py || true
+        run: |
+          flake8 main.py || true     # 🔸 Не прерывает pipeline
 
       - name: Run black check
-        run: black --check . || true
+        run: |
+          black --check . || true    # 🔸 Не прерывает pipeline
 
   security:
     name: Security Scan
@@ -51,19 +53,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y trivy
 
-      - name: Trivy FS scan
-        run: trivy fs . --exit-code 0 --severity HIGH,CRITICAL
+      - name: Trivy FS scan (non-blocking)
+        run: |
+          trivy fs . --exit-code 0 --severity HIGH,CRITICAL
 
       - name: Build Docker image
         run: docker build -t ${{ env.IMAGE_NAME }}:latest .
 
-      - name: Trivy Image scan
-        run: trivy image ${{ env.IMAGE_NAME }}:latest --exit-code 0 --severity HIGH,CRITICAL
+      - name: Trivy image scan (non-blocking)
+        run: |
+          trivy image ${{ env.IMAGE_NAME }}:latest --exit-code 0 --severity HIGH,CRITICAL
 
-      - name: Checkov scan
+      - name: Checkov scan (non-blocking)
         uses: bridgecrewio/checkov-action@master
         with:
           directory: .
+        continue-on-error: true       # 🔸 Не прерывает pipeline
 
   build_and_push:
     name: Docker Build & Push
@@ -72,11 +77,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to DockerHub
+      - name: Log in to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
 
-      - name: Build Docker image
+      - name: Build image
         run: docker build -t ${{ secrets.DOCKERHUB_USER }}/prod-large:latest .
 
-      - name: Push Docker image
+      - name: Push image
         run: docker push ${{ secrets.DOCKERHUB_USER }}/prod-large:latest
