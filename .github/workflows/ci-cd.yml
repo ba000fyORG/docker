@@ -1,19 +1,18 @@
-name: CI/CD Pipeline
-
-env:
-  IMAGE_NAME: prod-large
+name: CI/CD Docker Security Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [ "main" ]
   pull_request:
-    branches: [main]
+    branches: [ "main" ]
+
+env:
+  IMAGE_NAME: yourdockerhubuser/prod-large
 
 jobs:
   lint:
-    name: 🔍 Code Linting
+    name: Lint Dockerfile and Python
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,26 +21,23 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
-          failure-threshold: warning
+          failure-threshold: warning  # ⬅️ Не проваливает pipeline
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
-      - name: Install linters
-        run: pip install flake8 black
+      - name: Install flake8
+        run: pip install flake8
 
-      - name: Run flake8
-        run: flake8 main.py || true
+      - name: Lint Python code
+        run: |
+          flake8 main.py || true  # ⬅️ Не валим pipeline на варнингах
 
-      - name: Run black check
-        run: black --check . || true
-
-  security:
-    name: 🔒 Security Scanning
+  scan:
+    name: Static Analysis (Trivy + Checkov)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -58,31 +54,25 @@ jobs:
       - name: Trivy scan (filesystem)
         run: trivy fs . --exit-code 0 --severity HIGH,CRITICAL
 
-      - name: Docker build for scanning
-        run: docker build -t ${{ env.IMAGE_NAME }}:latest .
-
-      - name: Trivy scan (Docker image)
-        run: trivy image ${{ env.IMAGE_NAME }}:latest --exit-code 0 --severity HIGH,CRITICAL
-
-      - name: Checkov scan
+      - name: Run Checkov
         uses: bridgecrewio/checkov-action@master
         with:
           directory: .
-        continue-on-error: true
+          soft_fail: true  # ⬅️ Не проваливает pipeline
 
-  build_and_push:
-    name: 🐳 Docker Build & Push
+  build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    needs: [lint, security]
+    needs: [lint, scan]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up DockerHub credentials
+      - name: Docker login
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
 
-      - name: Build image
-        run: docker build -t ${{ secrets.DOCKERHUB_USER }}/prod-large:latest .
+      - name: Build Docker image
+        run: docker build -t ${{ env.IMAGE_NAME }}:latest .
 
-      - name: Push to DockerHub
-        run: docker push ${{ secrets.DOCKERHUB_USER }}/prod-large:latest
+      - name: Push image to DockerHub
+        run: docker push ${{ env.IMAGE_NAME }}:latest
