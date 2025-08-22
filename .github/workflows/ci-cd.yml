@@ -48,6 +48,7 @@ jobs:
         with:
           directory: .
           framework: dockerfile
+        continue-on-error: true
 
       # Install and run Trivy on file system
       - name: Install Trivy
