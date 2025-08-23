@@ -68,6 +68,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        
+      - name: DEBUG DockerHub credentials
+        run: |
+          echo "USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}"
+          echo "TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}" | wc -c
 
       - name: Docker login
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
