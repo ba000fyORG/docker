@@ -74,8 +74,8 @@ jobs:
           echo "USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}"
           echo "TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}" | wc -c
 
-      - name: Docker login
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build Docker image
         run: docker build -t ${{ env.IMAGE_NAME }}:latest .
